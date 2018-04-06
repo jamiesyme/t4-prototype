@@ -1,0 +1,12 @@
+{
+  "name": "t4-api-server",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "https://github.com/jamiesyme/t4-prototype",
+  "author": "Jamie Syme",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "backblaze-b2": "^1.0.4",
+    "express": "^4.16.3"
+  }
+}
