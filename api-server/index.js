@@ -2,6 +2,7 @@ const B2 = require('backblaze-b2');
 const pg = require('pg');
 const dotenv = require('dotenv');
 const express = require('express');
+const bodyParser = require('body-parser');
 
 { // Load the .env variables
 	const r = dotenv.config();
@@ -11,6 +12,7 @@ const express = require('express');
 }
 
 const app = express();
+app.use(bodyParser.json());
 
 // Create B2 client
 app.set('b2', new B2({
@@ -21,6 +23,7 @@ app.set('b2', new B2({
 // Create PG client (params pulled from env)
 app.set('pg', new pg.Pool());
 
+require('./routes/boxes')(app);
 require('./routes/files')(app);
 
 app.listen(3000, () => {

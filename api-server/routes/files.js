@@ -59,7 +59,9 @@ module.exports = function (app) {
 			};
 			await pg.query(query);
 
-			res.status(201).json({ fileId });
+			res.status(201).json({
+				id: fileId,
+			});
 
 		} catch (err) {
 			console.log(err);
