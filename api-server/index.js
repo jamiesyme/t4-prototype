@@ -1,4 +1,5 @@
 const B2 = require('backblaze-b2');
+const pg = require('pg');
 const dotenv = require('dotenv');
 const express = require('express');
 
@@ -10,10 +11,15 @@ const express = require('express');
 }
 
 const app = express();
+
+// Create B2 client
 app.set('b2', new B2({
 	accountId: process.env.B2_ACCOUNT_ID,
 	applicationKey: process.env.B2_APPLICATION_KEY,
 }));
+
+// Create PG client (params pulled from env)
+app.set('pg', new pg.Pool());
 
 require('./routes/files')(app);
 

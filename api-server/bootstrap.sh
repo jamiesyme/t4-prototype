@@ -11,3 +11,12 @@ echo "PATH=\"$HOME/.yarn/bin:$PATH\"" >> "$HOME/.profile"
 
 # Install PM2
 yarn global add pm2
+
+# Install Postgres
+export PGPASSWORD="${PGPASSWORD:-password}"
+sudo apt-get install -y postgresql
+sudo -u postgres createdb t4
+sudo -u postgres psql -c "CREATE ROLE t4 WITH LOGIN SUPERUSER PASSWORD '$PGPASSWORD';"
+sudo sed -i -r -e 's/local(\s+)all(\s+)all(\s+)peer/local\1all\2all\3md5/' /etc/postgresql/9.5/main/pg_hba.conf
+sudo systemctl restart postgresql
+psql --username=t4 --dbname=t4 --echo-all --file=config/db-schema.sql

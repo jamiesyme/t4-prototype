@@ -1,4 +1,5 @@
 const multer = require('multer');
+const uuidv4 = require('uuid/v4');
 
 const bucketId = process.env.B2_BUCKET_ID;
 const upload = multer();
@@ -12,7 +13,8 @@ module.exports = function (app) {
 			const uploadUrlRes = await b2.getUploadUrl(bucketId);
 			const uploadUrl = uploadUrlRes.data.uploadUrl;
 			const uploadAuthToken = uploadUrlRes.data.authorizationToken;
-			const filename = 'test-file';
+			const fileId = uuidv4();
+			const filename = 'files/' + fileId;
 			const data = req.file.buffer;
 
 			const uploadFileRes = await b2.uploadFile({
@@ -22,7 +24,15 @@ module.exports = function (app) {
 				data,
 			});
 
-			res.sendStatus(201);
+			const pg = app.get('pg');
+			const query = {
+				text: 'INSERT INTO files VALUES ($1, $2)',
+				values: [fileId, uploadFileRes.data.fileId],
+			};
+			await pg.query(query);
+
+			res.status(201).json({ fileId });
+
 		} catch (err) {
 			console.log(err);
 			res.sendStatus(500);
