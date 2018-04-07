@@ -74,6 +74,13 @@ module.exports = function (app) {
 				return;
 			}
 
+			// Get the file tags
+			const tagsStr = req.body.tags;
+			let tags = [];
+			if (tagsStr) {
+				tags = tagsStr.split(',');
+			}
+
 			// Upload the file to B2
 			const b2 = app.get('b2');
 			await b2.authorize();
@@ -102,9 +109,17 @@ module.exports = function (app) {
 				values: [boxId, fileId],
 			};
 			await pg.query(pgQuery);
+			for (const tag of tags) {
+				pgQuery = {
+					text: 'INSERT INTO file_tags VALUES ($1, $2, $3)',
+					values: [boxId, fileId, tag],
+				};
+				await pg.query(pgQuery);
+			}
 
 			res.status(201).json({
 				id: fileId,
+				tags: tags,
 			});
 
 		} catch (err) {

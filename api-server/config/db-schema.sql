@@ -15,3 +15,10 @@ CREATE TABLE box_files (
     box_id  UUID,
     file_id UUID
 );
+
+CREATE TABLE file_tags (
+    PRIMARY KEY (box_id, file_id, tag),
+    box_id  UUID,
+    file_id UUID,
+    tag     TEXT
+);
