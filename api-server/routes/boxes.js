@@ -7,19 +7,18 @@ const upload = multer();
 module.exports = function (app) {
 	app.get('/boxes', async (req, res) => {
 		try {
-			// Get the list from Postgres
-			const pg = app.get('pg');
-			const pgQuery = 'SELECT * FROM boxes';
-			const pgRes = await pg.query(pgQuery);
+			// Get the list from Arango
+			const db = app.get('arango');
+			const boxCursor = await db.collection('boxes').all();
+			const boxDocs = await boxCursor.all();
 
-			// Transform the row to remove the 'box_' prefix from the id
-			const boxes = pgRes.rows.map(row => {
+			// Return the boxes
+			const boxes = boxDocs.map(doc => {
 				return {
-					id: row.box_id,
-					name: row.name,
+					id: doc._id,
+					name: doc.name,
 				};
 			});
-
 			res.json(boxes);
 
 		} catch (err) {
@@ -38,14 +37,13 @@ module.exports = function (app) {
 				return;
 			}
 
-			// Create the box in Postgres
+			// Create the box in Arango
 			const boxId = uuidv4();
-			const pg = app.get('pg');
-			const query = {
-				text: 'INSERT INTO boxes VALUES ($1, $2)',
-				values: [boxId, name]
-			};
-			await pg.query(query);
+			const db = app.get('arango');
+			db.collection('boxes').save({
+				_id: boxId,
+				name: name,
+			});
 
 			res.status(201).json({
 				id: boxId,
@@ -57,28 +55,36 @@ module.exports = function (app) {
 			res.sendStatus(500);
 		}
 	});
+	app.post('/boxes/:id/files/_/contents', async (req, res) => {
+		try {
+			// Build the file query
+			req.query.tags
+
+		} catch (err) {
+			console.log(err);
+			res.sendStatus(500);
+		}
+	});
 	app.post('/boxes/:id/files', upload.single('file'), async (req, res) => {
 		try {
-			// Verify the box exists
-			const boxId = req.params.id;
-			const pg = app.get('pg');
-			let pgQuery = {
-				text: 'SELECT EXISTS (SELECT 1 FROM boxes WHERE box_id = $1)',
-				values: [boxId],
-			};
-			let pgRes = await pg.query(pgQuery);
-			if (!pgRes.rows[0]) {
-				res.status(404).json({
-					error: 'box not found'
-				});
-				return;
-			}
-
 			// Get the file tags
 			const tagsStr = req.body.tags;
 			let tags = [];
 			if (tagsStr) {
 				tags = tagsStr.split(',');
+			}
+
+			// Verify the box exists
+			const boxId = req.params.id;
+			const db = app.get('arango');
+			try {
+				const col = db.collection('boxes');
+				const doc = await col.firstExample({ _id: boxId });
+			} catch (e) {
+				res.status(404).json({
+					error: 'box not found'
+				});
+				return;
 			}
 
 			// Upload the file to B2
@@ -98,24 +104,13 @@ module.exports = function (app) {
 			});
 			const b2FileId = uploadFileRes.data.fileId;
 
-			// Save the file info in Postgres
-			pgQuery = {
-				text: 'INSERT INTO files VALUES ($1, $2)',
-				values: [fileId, b2FileId],
-			};
-			await pg.query(pgQuery);
-			pgQuery = {
-				text: 'INSERT INTO box_files VALUES ($1, $2)',
-				values: [boxId, fileId],
-			};
-			await pg.query(pgQuery);
-			for (const tag of tags) {
-				pgQuery = {
-					text: 'INSERT INTO file_tags VALUES ($1, $2, $3)',
-					values: [boxId, fileId, tag],
-				};
-				await pg.query(pgQuery);
-			}
+			// Save the file info in Arango
+			db.collection('files').save({
+				_id: fileId,
+				boxId,
+				b2FileId,
+				tags,
+			});
 
 			res.status(201).json({
 				id: fileId,

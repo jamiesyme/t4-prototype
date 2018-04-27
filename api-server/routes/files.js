@@ -7,14 +7,16 @@ const upload = multer();
 module.exports = function (app) {
 	app.get('/files/:id/contents', async (req, res) => {
 		try {
-			// Look up B2 fileId in Postgres
-			const pg = app.get('pg');
-			const pgQuery = {
-				text: 'SELECT * FROM files WHERE file_id = $1',
-				values: [req.params.id]
-			};
-			const pgRes = await pg.query(pgQuery);
-			if (pgRes.rows.length === 0) {
+			// Get the file id
+			const fileId = req.params.id;
+
+			// Look up B2 fileId in Arango
+			const db = app.get('arango');
+			let b2FileId;
+			try {
+				const doc = db.collection('files').document(fileId);
+				b2FileId = doc.b2FileId;
+			} catch (e) {
 				res.sendStatus(404);
 				return;
 			}
@@ -22,9 +24,7 @@ module.exports = function (app) {
 			// Download file from B2
 			const b2 = app.get('b2');
 			await b2.authorize();
-			const b2Res = await b2.downloadFileById({
-				fileId: pgRes.rows[0].b2_file_id
-			});
+			const b2Res = await b2.downloadFileById({ fileId: b2FileId });
 
 			res.send(b2Res.data);
 
@@ -50,14 +50,14 @@ module.exports = function (app) {
 				filename,
 				data,
 			});
+			const b2FileId = uploadFileRes.data.fileId;
 
-			// Save the file info in Postgres
-			const pg = app.get('pg');
-			const query = {
-				text: 'INSERT INTO files VALUES ($1, $2)',
-				values: [fileId, uploadFileRes.data.fileId],
-			};
-			await pg.query(query);
+			// Save the file info in Arango
+			const db = app.get('arango');
+			db.collection('files').save({
+				_id: fileId,
+				b2FileId,
+			});
 
 			res.status(201).json({
 				id: fileId,

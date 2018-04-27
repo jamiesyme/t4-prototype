@@ -12,11 +12,18 @@ echo "PATH=\"$HOME/.yarn/bin:$PATH\"" >> "$HOME/.profile"
 # Install PM2
 yarn global add pm2
 
-# Install Postgres
-export PGPASSWORD="${PGPASSWORD:-password}"
-sudo apt-get install -y postgresql
-sudo -u postgres createdb t4
-sudo -u postgres psql -c "CREATE ROLE t4 WITH LOGIN SUPERUSER PASSWORD '$PGPASSWORD';"
-sudo sed -i -r -e 's/local(\s+)all(\s+)all(\s+)peer/local\1all\2all\3md5/' /etc/postgresql/9.5/main/pg_hba.conf
-sudo systemctl restart postgresql
-psql --username=t4 --dbname=t4 --echo-all --file=config/db-schema.sql
+# Install ArangoDB
+ARANGO_PASSWORD=${ARANGO_PASSWORD:-password}
+echo arangodb3 arangodb3/password password "$ARANGO_PASSWORD" | debconf-set-selections
+echo arangodb3 arangodb3/password_again password "$ARANGO_PASSWORD" | debconf-set-selections
+echo arangodb3 arangodb3/password_mismatch error | debconf-set-selections
+echo arangodb3 arangodb3/upgrade boolean true | debconf-set-selections
+echo arangodb3 arangodb3/backup boolean false | debconf-set-selections
+echo arangodb3 arangodb3/storage_engine select rocksdb | debconf-set-selections
+
+curl -OL https://download.arangodb.com/arangodb33/xUbuntu_16.04/Release.key
+sudo apt-key add - < Release.key
+echo 'deb https://download.arangodb.com/arangodb33/xUbuntu_16.04/ /' | sudo tee /etc/apt/sources.list.d/arangodb.list
+sudo apt-get install apt-transport-https
+sudo apt-get update
+sudo apt-get install arangodb3
