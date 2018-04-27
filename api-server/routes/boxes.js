@@ -1,5 +1,6 @@
 const multer = require('multer');
 const uuidv4 = require('uuid/v4');
+const queryParser = require('../helpers/query-parser');
 
 const bucketId = process.env.B2_BUCKET_ID;
 const upload = multer();
@@ -15,7 +16,7 @@ module.exports = function (app) {
 			// Return the boxes
 			const boxes = boxDocs.map(doc => {
 				return {
-					id: doc._id,
+					id: doc._key,
 					name: doc.name,
 				};
 			});
@@ -41,7 +42,7 @@ module.exports = function (app) {
 			const boxId = uuidv4();
 			const db = app.get('arango');
 			db.collection('boxes').save({
-				_id: boxId,
+				_key: boxId,
 				name: name,
 			});
 
@@ -55,10 +56,46 @@ module.exports = function (app) {
 			res.sendStatus(500);
 		}
 	});
-	app.post('/boxes/:id/files/_/contents', async (req, res) => {
+	app.get('/boxes/:id/files/_', async (req, res) => {
 		try {
-			// Build the file query
-			req.query.tags
+			// Get the file query
+			const tagQueryStr = req.query.q;
+
+			// Parse the file query
+			let tagQuery;
+			try {
+				tagQuery = queryParser.parse(tagQueryStr);
+			} catch (e) {
+				console.log(e);
+				res.status(400).json({
+					error: 'invalid query',
+					query: tagQueryStr,
+				});
+				return;
+			}
+
+			// Convert the file query to a filter clause for Arango
+			const filterClause = tagQuery.toFilterClause('file.tags');
+
+			// Get files from Arango
+			const db = app.get('arango');
+			const dbQueryStr = `
+				FOR file IN files
+					${filterClause.filter}
+					RETURN file
+			`;
+			const fileCursor = await db.query(dbQueryStr, filterClause.params);
+			const fileDocs = await fileCursor.all();
+
+			// Return the files
+			const files = fileDocs.map(doc => {
+				return {
+					id: doc._key,
+					boxId: doc.boxId,
+					tags: doc.tags,
+				};
+			});
+			res.json(files);
 
 		} catch (err) {
 			console.log(err);
@@ -79,7 +116,7 @@ module.exports = function (app) {
 			const db = app.get('arango');
 			try {
 				const col = db.collection('boxes');
-				const doc = await col.firstExample({ _id: boxId });
+				const doc = await col.firstExample({ _key: boxId });
 			} catch (e) {
 				res.status(404).json({
 					error: 'box not found'
@@ -106,7 +143,7 @@ module.exports = function (app) {
 
 			// Save the file info in Arango
 			db.collection('files').save({
-				_id: fileId,
+				_key: fileId,
 				boxId,
 				b2FileId,
 				tags,

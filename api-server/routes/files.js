@@ -55,7 +55,7 @@ module.exports = function (app) {
 			// Save the file info in Arango
 			const db = app.get('arango');
 			db.collection('files').save({
-				_id: fileId,
+				_key: fileId,
 				b2FileId,
 			});
 

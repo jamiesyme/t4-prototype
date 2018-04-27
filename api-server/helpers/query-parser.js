@@ -104,7 +104,43 @@ class Query {
 		this.root = nodeStack.pop() || null;
 	}
 
-	toWhereClause () {
+	toFilterClause (tagVarName) {
+		let str = '';
+		let params = {};
+
+		const randomPrefix = Math.random().toString(36).substr(2, 5);
+		let currentSuffix = 0;
+
+		function convertNode (node) {
+			if (node.type === 'tag') {
+				const name = randomPrefix + (currentSuffix++).toString();
+				params[name] = node.data.value;
+				return `@${name} IN ${tagVarName}`;
+			}
+			if (node.type === 'not') {
+				node = node.data.node;
+				const name = randomPrefix + (currentSuffix++).toString();
+				params[name] = node.data.value;
+				return `@${name} NOT IN ${tagVarName}`;
+			}
+			if (node.type === 'and') {
+				const left = convertNode(node.data.left);
+				const right = convertNode(node.data.right);
+				return `${left} AND ${right}`;
+			}
+			if (node.type === 'or') {
+				const left = convertNode(node.data.left);
+				const right = convertNode(node.data.right);
+				return `${left} OR ${right}`;
+			}
+			throw new Error(`unknown op '${node.type}'`);
+		}
+		str = `FILTER ${convertNode(this.root)}`;
+
+		return {
+			filter: str,
+			params: params,
+		};
 	}
 }
 
