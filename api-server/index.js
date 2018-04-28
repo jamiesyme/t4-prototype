@@ -55,7 +55,7 @@ async function main () {
 	});
 
 	app.listen(3000, () => {
-		console.log('Example app listening on port 3000');
+		console.log('Listening on :3000');
 	});
 }
 main();
