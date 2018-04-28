@@ -26,6 +26,15 @@ function register (app) {
 		res.status(201).json(boxInfo);
 	});
 
+	app.delete('/boxes/:id', async (req, res) => {
+		const boxId = req.params.id;
+
+		const boxRepo = app.get('box-repo');
+		await boxRepo.delete(boxId);
+
+		res.sendStatus(204);
+	});
+
 	app.get('/boxes/:id/files/_', async (req, res) => {
 		let fileQueryStr = req.query.q;
 		let fileQuery;

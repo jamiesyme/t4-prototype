@@ -2,9 +2,9 @@ const uuidv4 = require('uuid/v4');
 const FileInfo = require('../models/file-info');
 
 class FileRepo {
-	constructor (arango, collectionName, b2, bucketId) {
+	constructor (arango, fileColName, b2, bucketId) {
 		this.db = arango;
-		this.fileCollection = this.db.collection(collectionName);
+		this.fileCollection = this.db.collection(fileColName);
 		this.b2 = b2;
 		this.bucketId = bucketId;
 	}

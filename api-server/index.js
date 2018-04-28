@@ -32,8 +32,8 @@ async function main () {
 	await ArangoConfig.init(arangoClient);
 
 	// Init repos
-	const boxRepo = new BoxRepo(arangoClient, 'boxes');
 	const fileRepo = new FileRepo(arangoClient, 'files', b2Client, b2BucketId);
+	const boxRepo = new BoxRepo(arangoClient, 'boxes', fileRepo);
 
 	// Init Express app
 	const app = express();
