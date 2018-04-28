@@ -7,9 +7,8 @@ async function doesCollectionExist (db, name) {
 	return false;
 }
 
-async function init (app) {
+async function init (db) {
 	// Create the database
-	const db = app.get('arango');
 	db.useBasicAuth(
 		process.env.ARANGO_USERNAME,
 		process.env.ARANGO_PASSWORD,
@@ -43,4 +42,4 @@ async function createFilesCollection (db) {
 	await col.create();
 }
 
-module.exports = init;
+module.exports = { init };
