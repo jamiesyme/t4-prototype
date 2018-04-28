@@ -38,15 +38,17 @@ class FileRepo {
 		});
 	}
 
-	async getManyByQuery (fileQuery) {
+	async getManyByQuery (boxId, fileQuery) {
 		const filterClause = fileQuery.toFilterClause('file.tags');
 
 		const queryStr = `
 			FOR file IN ${this.fileCollection.name}
+				FILTER file.boxId == @boxId
 				${filterClause.filter}
 				RETURN file
 		`;
-		const cursor = await this.db.query(queryStr, filterClause.params);
+		const queryParams = Object.assign({ boxId }, filterClause.params);
+		const cursor = await this.db.query(queryStr, queryParams);
 		const docs = await cursor.all();
 
 		return docs.map(this._infoDocToModel);

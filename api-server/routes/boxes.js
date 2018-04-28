@@ -36,6 +36,8 @@ function register (app) {
 	});
 
 	app.get('/boxes/:id/files/_', async (req, res) => {
+		const boxId = req.params.id;
+
 		let fileQueryStr = req.query.q;
 		let fileQuery;
 		try {
@@ -50,7 +52,7 @@ function register (app) {
 		}
 
 		const fileRepo = app.get('file-repo');
-		const fileInfo = await fileRepo.getManyByQuery(fileQuery);
+		const fileInfo = await fileRepo.getManyByQuery(boxId, fileQuery);
 
 		res.json({
 			files: fileInfo
