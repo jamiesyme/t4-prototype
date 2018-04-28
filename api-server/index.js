@@ -3,6 +3,7 @@ const B2         = require('backblaze-b2');
 const bodyParser = require('body-parser');
 const dotenv     = require('dotenv');
 const express    = require('express');
+require('express-async-errors');
 
 const ArangoConfig = require('./config/arango');
 const BoxRepo      = require('./repos/box-repo');
@@ -45,6 +46,13 @@ async function main () {
 
 	BoxRoutes.register(app);
 	FileRoutes.register(app);
+
+	app.use((err, req, res, next) => {
+		if (!res.headersSent) {
+			res.sendStatus(500);
+		}
+		next(err);
+	});
 
 	app.listen(3000, () => {
 		console.log('Example app listening on port 3000');
