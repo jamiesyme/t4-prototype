@@ -3,11 +3,8 @@ function register (app) {
 		try {
 			const fileId = req.params.id;
 
-			const fileContentRepo = app.get('file-content-repo');
-			await fileContentRepo.delete(fileId);
-
-			const fileInfoRepo = app.get('file-info-repo');
-			await fileInfoRepo.delete(fileId);
+			const fileRepo = app.get('file-repo');
+			await fileRepo.delete(fileId);
 
 			res.sendStatus(204);
 
@@ -21,10 +18,10 @@ function register (app) {
 		try {
 			const fileId = req.params.id;
 
-			const fileContentRepo = app.get('file-content-repo');
-			const fileContent = await fileContentRepo.get(fileId);
+			const fileRepo = app.get('file-repo');
+			const fileContents = await fileRepo.getContents(fileId);
 
-			res.send(fileContent);
+			res.send(fileContents);
 
 		} catch (err) {
 			console.log(err);

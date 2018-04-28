@@ -1,13 +1,33 @@
-class FileContentRepo {
-	constructor (b2, bucketId, arango, collectionName) {
-		this.b2 = b2;
-		this.bucketId = bucketId;
+const uuidv4 = require('uuid/v4');
+const FileInfo = require('../models/file-info');
+
+class FileRepo {
+	constructor (arango, collectionName, b2, bucketId) {
 		this.db = arango;
 		this.fileCollection = this.db.collection(collectionName);
+		this.b2 = b2;
+		this.bucketId = bucketId;
+	}
+
+	_infoDocToModel (doc) {
+		return new FileInfo(doc._key, doc.boxId, doc.tags);
+	}
+
+	async create (boxId, tags, contents) {
+		const doc = {
+			_key: uuidv4(),
+			boxId: boxId,
+			tags: tags || []
+		};
+		await this.fileCollection.save(doc);
+		await this.setContents(doc._key, contents);
+		return this._infoDocToModel(doc);
 	}
 
 	async delete (fileId) {
 		const fileInfo = await this.fileCollection.document(fileId);
+
+		await this.fileCollection.remove(fileId);
 
 		const b2FileId = fileInfo.b2FileId;
 		const b2FileName = 'files/' + fileId;
@@ -16,11 +36,23 @@ class FileContentRepo {
 			fileId: b2FileId,
 			fileName: b2FileName,
 		});
-
-		// NOTE: this leaves invalid b2FileId in file info
 	}
 
-	async get (fileId) {
+	async getManyByQuery (fileQuery) {
+		const filterClause = fileQuery.toFilterClause('file.tags');
+
+		const queryStr = `
+			FOR file IN ${this.fileCollection.name}
+				${filterClause.filter}
+				RETURN file
+		`;
+		const cursor = await this.db.query(queryStr, filterClause.params);
+		const docs = await cursor.all();
+
+		return docs.map(this._infoDocToModel);
+	}
+
+	async getContents (fileId) {
 		const fileInfo = await this.fileCollection.document(fileId);
 
 		await this.b2.authorize();
@@ -31,7 +63,7 @@ class FileContentRepo {
 		return downloadRes.data;
 	}
 
-	async set (fileId, contentBuffer) {
+	async setContents (fileId, contents) {
 		const b2FileName = 'files/' + fileId;
 
 		await this.b2.authorize();
@@ -43,7 +75,7 @@ class FileContentRepo {
 			uploadUrl:       uploadUrl,
 			uploadAuthToken: authToken,
 			filename:        b2FileName,
-			data:            contentBuffer,
+			data:            contents,
 		});
 		const b2FileId = uploadFileRes.data.fileId;
 
@@ -51,4 +83,4 @@ class FileContentRepo {
 	}
 }
 
-module.exports = FileContentRepo;
+module.exports = FileRepo;

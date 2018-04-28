@@ -4,8 +4,8 @@ const queryParser = require('../helpers/query-parser');
 function register (app) {
 	app.get('/boxes', async (req, res) => {
 		try {
-			const boxInfoRepo = app.get('box-info-repo');
-			const boxInfo = await boxInfoRepo.getAll();
+			const boxRepo = app.get('box-repo');
+			const boxInfo = await boxRepo.getAll();
 
 			res.json({
 				boxes: boxInfo
@@ -27,8 +27,8 @@ function register (app) {
 				return;
 			}
 
-			const boxInfoRepo = app.get('box-info-repo');
-			const boxInfo = await boxInfoRepo.create(name);
+			const boxRepo = app.get('box-repo');
+			const boxInfo = await boxRepo.create(name);
 
 			res.status(201).json(boxInfo);
 
@@ -53,8 +53,8 @@ function register (app) {
 				return;
 			}
 
-			const fileInfoRepo = app.get('file-info-repo');
-			const fileInfo = await fileInfoRepo.getManyByQuery(fileQuery);
+			const fileRepo = app.get('file-repo');
+			const fileInfo = await fileRepo.getManyByQuery(fileQuery);
 
 			res.json({
 				files: fileInfo
@@ -68,14 +68,14 @@ function register (app) {
 
 	app.post('/boxes/:id/files', multer().single('file'), async (req, res) => {
 		try {
-			const fileContent = req.file.buffer;
+			const contents = req.file.buffer;
 
 			const tagsStr = req.body.tags;
 			const tags = tagsStr.split(',').filter(t => !!t);
 
 			const boxId = req.params.id;
-			const boxInfoRepo = app.get('box-info-repo');
-			const boxExists = await boxInfoRepo.exists(boxId);
+			const boxRepo = app.get('box-repo');
+			const boxExists = await boxRepo.exists(boxId);
 			if (!boxExists) {
 				res.status(404).json({
 					error: 'box not found'
@@ -83,11 +83,8 @@ function register (app) {
 				return;
 			}
 
-			const fileInfoRepo = app.get('file-info-repo');
-			const fileInfo = await fileInfoRepo.create(boxId, tags);
-
-			const fileContentRepo = app.get('file-content-repo');
-			await fileContentRepo.set(fileInfo.id, fileContent);
+			const fileRepo = app.get('file-repo');
+			const fileInfo = await fileRepo.create(boxId, tags, contents);
 
 			res.status(201).json(fileInfo);
 

@@ -4,12 +4,11 @@ const bodyParser = require('body-parser');
 const dotenv     = require('dotenv');
 const express    = require('express');
 
-const ArangoConfig    = require('./config/arango');
-const BoxInfoRepo     = require('./repos/box-info-repo');
-const FileInfoRepo    = require('./repos/file-info-repo');
-const FileContentRepo = require('./repos/file-content-repo');
-const BoxRoutes       = require('./routes/boxes');
-const FileRoutes      = require('./routes/files');
+const ArangoConfig = require('./config/arango');
+const BoxRepo      = require('./repos/box-repo');
+const FileRepo     = require('./repos/file-repo');
+const BoxRoutes    = require('./routes/boxes');
+const FileRoutes   = require('./routes/files');
 
 async function main () {
 
@@ -25,20 +24,15 @@ async function main () {
 		accountId: process.env.B2_ACCOUNT_ID,
 		applicationKey: process.env.B2_APPLICATION_KEY,
 	});
+	const b2BucketId = process.env.B2_BUCKET_ID;
 
 	// Init ArangoDB client
 	const arangoClient = new arango.Database();
 	await ArangoConfig.init(arangoClient);
 
 	// Init repos
-	const boxInfoRepo = new BoxInfoRepo(arangoClient, 'boxes');
-	const fileInfoRepo = new FileInfoRepo(arangoClient, 'files');
-	const fileContentRepo = new FileContentRepo(
-		b2Client,
-		process.env.B2_BUCKET_ID,
-		arangoClient,
-		'files'
-	);
+	const boxRepo = new BoxRepo(arangoClient, 'boxes');
+	const fileRepo = new FileRepo(arangoClient, 'files', b2Client, b2BucketId);
 
 	// Init Express app
 	const app = express();
@@ -46,9 +40,8 @@ async function main () {
 
 	app.set('arango', arangoClient);
 	app.set('b2', b2Client);
-	app.set('box-info-repo', boxInfoRepo);
-	app.set('file-info-repo', fileInfoRepo);
-	app.set('file-content-repo', fileContentRepo);
+	app.set('box-repo', boxRepo);
+	app.set('file-repo', fileRepo);
 
 	BoxRoutes.register(app);
 	FileRoutes.register(app);
