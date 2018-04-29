@@ -66,7 +66,7 @@ function register (app) {
 		try {
 			fileQuery = queryParser.parse(fileQueryStr);
 		} catch (err) {
-			if (err instanceof Errors.QueryParserError) {
+			if (err instanceof Errors.QueryParseError) {
 				return res.status(400).json({
 					error: 'invalid query',
 					query: err.queryStr,

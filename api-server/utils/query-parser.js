@@ -1,4 +1,4 @@
-const QueryParserError = require('../errors/query-parser-error');
+const QueryParseError = require('../errors/query-parse-error');
 
 class QueryParser {
 	constructor () {
@@ -27,7 +27,7 @@ class QueryParser {
 			} else {
 				msg = 'expected an operator';
 			}
-			throw new QueryParserError(msg, this.str, this.strIndex);
+			throw new QueryParseError(msg, this.str, this.strIndex);
 		}
 
 		return query;
@@ -37,7 +37,7 @@ class QueryParser {
 		const node = this.acceptQuery(maxPrec);
 		if (!node) {
 			const msg = 'expected a tag';
-			throw new QueryParserError(msg, this.str, this.strIndex);
+			throw new QueryParseError(msg, this.str, this.strIndex);
 		}
 		return node;
 	}
