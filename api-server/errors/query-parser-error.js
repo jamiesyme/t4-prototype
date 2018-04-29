@@ -1,10 +1,10 @@
 const AppError = require('./app-error');
 
 class QueryParserError extends AppError {
-	constructor (reason, str, strIndex) {
+	constructor (reason, queryStr, queryStrIndex) {
 		super(reason);
-		this.str = str;
-		this.strIndex = strIndex;
+		this.queryStr = queryStr;
+		this.queryStrIndex = queryStrIndex;
 	}
 }
 

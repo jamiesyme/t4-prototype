@@ -65,12 +65,15 @@ function register (app) {
 		let fileQuery;
 		try {
 			fileQuery = queryParser.parse(fileQueryStr);
-		} catch (e) {
-			console.log(e);
-			return res.status(400).json({
-				error: 'invalid query',
-				query: fileQueryStr,
-			});
+		} catch (err) {
+			if (err instanceof Errors.QueryParserError) {
+				return res.status(400).json({
+					error: 'invalid query',
+					query: err.queryStr,
+					details: `${err.message} (char: ${err.queryStrIndex})`,
+				});
+			}
+			throw err;
 		}
 
 		const boxRepo = app.get('box-repo');
