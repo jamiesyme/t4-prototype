@@ -1,5 +1,5 @@
 const multer = require('multer');
-const queryParser = require('../helpers/query-parser');
+const queryParser = require('../utils/query-parser');
 
 function register (app) {
 	app.get('/boxes', async (req, res) => {
