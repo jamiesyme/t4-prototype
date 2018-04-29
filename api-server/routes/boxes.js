@@ -1,4 +1,5 @@
 const multer = require('multer');
+const Errors = require('../errors');
 const queryParser = require('../utils/query-parser');
 
 function register (app) {
@@ -14,10 +15,9 @@ function register (app) {
 	app.post('/boxes', async (req, res) => {
 		const name = req.body.name;
 		if (!name) {
-			res.status(400).json({
+			return res.status(400).json({
 				error: 'missing name'
 			});
-			return;
 		}
 
 		const boxRepo = app.get('box-repo');
@@ -29,10 +29,20 @@ function register (app) {
 	app.delete('/boxes/:id', async (req, res) => {
 		const boxId = req.params.id;
 
-		const boxRepo = app.get('box-repo');
-		await boxRepo.delete(boxId);
+		try {
+			const boxRepo = app.get('box-repo');
+			await boxRepo.delete(boxId);
 
-		res.sendStatus(204);
+			res.sendStatus(204);
+
+		} catch (err) {
+			if (err instanceof Errors.BoxNotFoundError) {
+				return res.status(404).json({
+					error: 'box not found'
+				});
+			}
+			throw err;
+		}
 	});
 
 	app.get('/boxes/:id/files/_', async (req, res) => {
@@ -44,11 +54,18 @@ function register (app) {
 			fileQuery = queryParser.parse(fileQueryStr);
 		} catch (e) {
 			console.log(e);
-			res.status(400).json({
+			return res.status(400).json({
 				error: 'invalid query',
 				query: fileQueryStr,
 			});
-			return;
+		}
+
+		const boxRepo = app.get('box-repo');
+		const boxExists = await boxRepo.exists(boxId);
+		if (!boxExists) {
+			return res.status(404).json({
+				error: 'box not found'
+			});
 		}
 
 		const fileRepo = app.get('file-repo');
@@ -69,10 +86,9 @@ function register (app) {
 		const boxRepo = app.get('box-repo');
 		const boxExists = await boxRepo.exists(boxId);
 		if (!boxExists) {
-			res.status(404).json({
+			return res.status(404).json({
 				error: 'box not found'
 			});
-			return;
 		}
 
 		const fileRepo = app.get('file-repo');

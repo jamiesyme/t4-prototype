@@ -1,5 +1,6 @@
 const uuidv4 = require('uuid/v4');
 const BoxInfo = require('../models/box-info');
+const Errors = require('../errors');
 
 class BoxRepo {
 	constructor (arango, boxColName, fileRepo) {
@@ -29,15 +30,40 @@ class BoxRepo {
 			await this.fileRepo.delete(doc._key);
 		}
 
-		await this.boxCollection.remove(boxId);
+		try {
+			await this.boxCollection.remove(boxId);
+
+		} catch (err) {
+			if (err && err.code === 404) {
+				throw new Errors.BoxNotFoundError(boxId);
+			}
+			throw err;
+		}
 	}
 
 	async exists (boxId) {
 		try {
-			await this.boxCollection.document(boxId);
+			await this.get(boxId);
 			return true;
-		} catch (e) {
-			return false;
+
+		} catch (err) {
+			if (err instanceof Errors.BoxNotFoundError) {
+				return false;
+			}
+			throw err;
+		}
+	}
+
+	async get (boxId) {
+		try {
+			const doc = await this.boxCollection.document(boxId);
+			return this._infoDocToModel(doc);
+
+		} catch (err) {
+			if (err && err.code === 404) {
+				throw new Errors.BoxNotFoundError(boxId);
+			}
+			throw err;
 		}
 	}
 

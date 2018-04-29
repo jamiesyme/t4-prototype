@@ -1,4 +1,5 @@
 const uuidv4 = require('uuid/v4');
+const Errors = require('../errors');
 const FileInfo = require('../models/file-info');
 
 class FileRepo {
@@ -25,7 +26,15 @@ class FileRepo {
 	}
 
 	async delete (fileId) {
-		const fileInfo = await this.fileCollection.document(fileId);
+		let fileInfo;
+		try {
+			fileInfo = await this.fileCollection.document(fileId);
+		} catch (err) {
+			if (err && err.code === 404) {
+				throw new Errors.FileNotFoundError(fileId);
+			}
+			throw err;
+		}
 
 		await this.fileCollection.remove(fileId);
 
@@ -36,6 +45,19 @@ class FileRepo {
 			fileId: b2FileId,
 			fileName: b2FileName,
 		});
+	}
+
+	async exists (fileId) {
+		try {
+			await this.fileCollection.document(fileId);
+			return true;
+
+		} catch (err) {
+			if (err && err.code === 404) {
+				return false;
+			}
+			throw err;
+		}
 	}
 
 	async getManyByQuery (boxId, fileQuery) {
@@ -55,7 +77,15 @@ class FileRepo {
 	}
 
 	async getContents (fileId) {
-		const fileInfo = await this.fileCollection.document(fileId);
+		let fileInfo;
+		try {
+			fileInfo = await this.fileCollection.document(fileId);
+		} catch (err) {
+			if (err && err.code === 404) {
+				throw new Errors.FileNotFoundError(fileId);
+			}
+			throw err;
+		}
 
 		await this.b2.authorize();
 		const downloadRes = await this.b2.downloadFileById({
@@ -66,6 +96,11 @@ class FileRepo {
 	}
 
 	async setContents (fileId, contents) {
+		const fileExists = await this.exists(fileId);
+		if (!fileExists) {
+			throw new Errors.FileNotFoundError(fileId);
+		}
+
 		const b2FileName = 'files/' + fileId;
 
 		await this.b2.authorize();
