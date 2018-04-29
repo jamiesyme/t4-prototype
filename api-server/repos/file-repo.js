@@ -49,12 +49,25 @@ class FileRepo {
 
 	async exists (fileId) {
 		try {
-			await this.fileCollection.document(fileId);
+			await this.get(fileId);
 			return true;
 
 		} catch (err) {
-			if (err && err.code === 404) {
+			if (err instanceof Errors.FileNotFoundError) {
 				return false;
+			}
+			throw err;
+		}
+	}
+
+	async get (fileId) {
+		try {
+			const doc = await this.fileCollection.document(fileId);
+			return this._infoDocToModel(doc);
+
+		} catch (err) {
+			if (err && err.code === 404) {
+				throw new Errors.FileNotFoundError(fileId);
 			}
 			throw err;
 		}
