@@ -1,5 +1,6 @@
 const multer = require('multer');
 const Errors = require('../errors');
+const isBoxId = require('../utils/is-id').isBoxId;
 const queryParser = require('../utils/query-parser');
 
 function register (app) {
@@ -27,7 +28,13 @@ function register (app) {
 	});
 
 	app.delete('/boxes/:id', async (req, res) => {
+
 		const boxId = req.params.id;
+		if (!isBoxId(boxId)) {
+			return res.status(400).json({
+				error: 'invalid box id'
+			});
+		}
 
 		try {
 			const boxRepo = app.get('box-repo');
@@ -46,7 +53,13 @@ function register (app) {
 	});
 
 	app.get('/boxes/:id/files/_', async (req, res) => {
+
 		const boxId = req.params.id;
+		if (!isBoxId(boxId)) {
+			return res.status(400).json({
+				error: 'invalid box id'
+			});
+		}
 
 		let fileQueryStr = req.query.q;
 		let fileQuery;
@@ -83,6 +96,12 @@ function register (app) {
 		const tags = tagsStr.split(',').filter(t => !!t);
 
 		const boxId = req.params.id;
+		if (!isBoxId(boxId)) {
+			return res.status(400).json({
+				error: 'invalid box id'
+			});
+		}
+
 		const boxRepo = app.get('box-repo');
 		const boxExists = await boxRepo.exists(boxId);
 		if (!boxExists) {

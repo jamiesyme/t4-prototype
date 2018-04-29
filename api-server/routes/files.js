@@ -1,8 +1,15 @@
 const Errors = require('../errors');
+const isFileId = require('../utils/is-id').isFileId;
 
 function register (app) {
 	app.delete('/files/:id', async (req, res) => {
+
 		const fileId = req.params.id;
+		if (!isFileId(fileId)) {
+			return res.status(400).json({
+				error: 'invalid file id'
+			});
+		}
 
 		try {
 			const fileRepo = app.get('file-repo');
@@ -21,7 +28,13 @@ function register (app) {
 	});
 
 	app.get('/files/:id', async (req, res) => {
+
 		const fileId = req.params.id;
+		if (!isFileId(fileId)) {
+			return res.status(400).json({
+				error: 'invalid file id'
+			});
+		}
 
 		try {
 			const fileRepo = app.get('file-repo');
@@ -40,7 +53,13 @@ function register (app) {
 	});
 
 	app.get('/files/:id/contents', async (req, res) => {
+
 		const fileId = req.params.id;
+		if (!isFileId(fileId)) {
+			return res.status(400).json({
+				error: 'invalid file id'
+			});
+		}
 
 		try {
 			const fileRepo = app.get('file-repo');
